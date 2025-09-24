@@ -1,0 +1,86 @@
+version: '3.9'
+
+services:
+  # ---------- Databases ----------
+  mongo-auth:
+    image: mongo:6
+    container_name: mongo-auth
+    ports:
+      - "27017:27017"
+    volumes:
+      - mongo_auth_data:/data/db
+
+  mongo-account:
+    image: mongo:6
+    container_name: mongo-account
+    ports:
+      - "27018:27017"
+    volumes:
+      - mongo_account_data:/data/db
+
+  mongo-transaction:
+    image: mongo:6
+    container_name: mongo-transaction
+    ports:
+      - "27019:27017"
+    volumes:
+      - mongo_transaction_data:/data/db
+
+  # ---------- Services ----------
+  auth-service:
+    build: ./backend/auth-service
+    container_name: auth-service
+    environment:
+      - PORT=4001
+      - MONGO_URI=mongodb://mongo-auth:27017/authdb
+    ports:
+      - "4001:4001"
+    depends_on:
+      - mongo-auth
+
+  account-service:
+    build: ./backend/account-service
+    container_name: account-service
+    environment:
+      - PORT=4002
+      - MONGO_URI=mongodb://mongo-account:27017/accountdb
+    ports:
+      - "4002:4002"
+    depends_on:
+      - mongo-account
+
+  transaction-service:
+    build: ./backend/transaction-service
+    container_name: transaction-service
+    environment:
+      - PORT=4003
+      - MONGO_URI=mongodb://mongo-transaction:27017/transactiondb
+    ports:
+      - "4003:4003"
+    depends_on:
+      - mongo-transaction
+
+  notification-service:
+    build: ./backend/notification-service
+    container_name: notification-service
+    environment:
+      - PORT=4004
+    ports:
+      - "4004:4004"
+
+  # ---------- Frontend ----------
+  frontend-service:
+    build: ./frontend/banking-frontend
+    container_name: frontend-service
+    ports:
+      - "3000:3000"
+    depends_on:
+      - auth-service
+      - account-service
+      - transaction-service
+      - notification-service
+
+volumes:
+  mongo_auth_data:
+  mongo_account_data:
+  mongo_transaction_data:
